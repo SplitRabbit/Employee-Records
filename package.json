@@ -1,0 +1,28 @@
+{
+  "name": "employee-records",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SplitRabbit/Employee-Records.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SplitRabbit/Employee-Records/issues"
+  },
+  "homepage": "https://github.com/SplitRabbit/Employee-Records#readme",
+  "dependencies": {
+    "express": "^4.18.1",
+    "fs": "^0.0.1-security",
+    "inquirer": "^8.2.4",
+    "mysql2": "^2.3.3"
+  },
+  "devDependencies": {
+    "jest": "^28.1.0"
+  }
+}
