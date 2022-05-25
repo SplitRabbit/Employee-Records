@@ -26,6 +26,10 @@ const db = mysql.createConnection(
     console.log('Connected to the company database.')
   );
 
+  db.query(`SELECT * FROM department`, (err, rows) => {
+    console.log(rows);
+  });
+  
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
