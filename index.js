@@ -1,7 +1,5 @@
 const inquirer = require('inquirer');
-const fs = require("fs");
-const util = require("util");
-const writeFileAsync = util.promisify(fs.writeFile);
+const cTable = require('console.table');
 
 //require server packages
 const express = require('express');
@@ -104,15 +102,15 @@ function promptUser() {
         console.log(answers)
         if (answers.action === "View All Departments") {
             db.query(`SELECT * FROM department`, (err, rows) => {
-                console.log(rows);
+                console.table(rows);
               });
         } else if (answers.action === "View All Roles") {
             db.query(`SELECT * FROM role`, (err, rows) => {
-                console.log(rows);
+                console.table(rows);
               });
         } else if (answers.action === "View All Employees") {
             db.query(`SELECT * FROM employees`, (err, rows) => {
-                console.log(rows);
+                console.table(rows);
               });
         } else if (answers.action === "Add a Department") {
             db.query(`INSERT INTO department (name) 
