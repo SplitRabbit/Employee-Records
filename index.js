@@ -3,6 +3,26 @@ const fs = require("fs");
 const util = require("util");
 const writeFileAsync = util.promisify(fs.writeFile);
 
+//require server packages
+const express = require('express');
+const mysql = require('mysql2');
+const { exit } = require('process');
+
+const PORT = process.env.PORT || 3001;
+const app = express();
+
+// Connect to database
+const db = mysql.createConnection(
+    {
+      host: 'localhost',
+      // Your MySQL username,
+      user: 'root',
+      // Your MySQL password
+      password: '',
+      database: 'company'
+    },
+    console.log('Connected to the company database.')
+  );
 
 //list of manager questions for inquirer
 const questions = [
@@ -41,7 +61,7 @@ const questions = [
     },
     {
         type: "input",
-        name: "newroledeparment",
+        name: "newroledeparmentid",
         message: "What is the department for this role?",
         when: (answers) => answers.action ===  "Add a Role"
     },
@@ -75,27 +95,92 @@ const questions = [
         message: "What is their new role?",
         when: (answers) => answers.action === "Update an Employee Role"
     },
-
-    //recursive question to reloop through questions 
-    {
-        type: "confirm",
-        name: "dosomethingelse",
-        message: "Would you like to do something else?"
-    },
 ];
 
 //promptuser function
 function promptUser() {
     console.log("Enter Employee Information Here.");
-    return inquirer.prompt(questions).then((answers) => {
+    inquirer.prompt(questions).then((answers) => {
         console.log(answers)
-    //recursive function to decide whether or not to loop through again
-        if (answers.dosomethingelse) {
-            return promptUser();
+        if (answers.action === "View All Departments") {
+            db.query(`SELECT * FROM department`, (err, rows) => {
+                console.log(rows);
+              });
+        } else if (answers.action === "View All Roles") {
+            db.query(`SELECT * FROM role`, (err, rows) => {
+                console.log(rows);
+              });
+        } else if (answers.action === "View All Employees") {
+            db.query(`SELECT * FROM employees`, (err, rows) => {
+                console.log(rows);
+              });
+        } else if (answers.action === "Add a Department") {
+            db.query(`INSERT INTO department (name) 
+                        VALUES (${answers.newdepartment});`
+                        , (err, rows) => {
+                console.log(rows);
+              });
+        } else if (answers.action === "Add a Role") {
+            db.query(`INSERT INTO role (title,salary,department_id)
+                        VALUES (${answers.newrolename},${answers.newrolesalary},
+                            (SELECT id FROM department WHERE name = ${answers.newroledeparment});`
+                        , (err, rows) => {
+                console.log('Role added successfully!')
+              });
+        } else if (answers.action === "Add an Employee") {
+            db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id)
+                        VALUES (${answers.newemployeefirstname},${answers.newemployeelastname},
+                            (SELECT MAX(id) FROM role WHERE name = ${answers.newemployeerole}),
+                            (SELECT MAX(id) FROM employees WHERE name = ${answers.newemployeemanager});`
+                        , (err, rows) => {
+                console.log('Employee updated successfully!')
+              });
+        } else if (answers.action ===  "Update an Employee Role") {
+            db.query(`UPDATE employees 
+                        SET role = (SELECT MAX(id) FROM role WHERE id = ${answers.updateemployeerole})`
+                        , (err, rows) => {
+                console.log('Employee updated successfully!')
+              });
         } else {
-            return answers;
-        }
+            console.log("Not a Valid Action")
+        };
+    //recursive function to decide whether or not to loop through again
+        dosomethingelse();
     });
 };
 
+function dosomethingelse() {
+    return inquirer.prompt([{
+        type: "confirm",
+        name: "dosomethingelse",
+        message: "Would you like to do something else?"
+    }]).then((answers) => {
+        if (answers.dosomethingelse) {
+            promptUser();
+        } else {
+            exit();
+        }
+        promptUser()
+    });
+    //recursive question to reloop through questions 
+};
+
 promptUser();
+
+
+// // Express middleware
+// app.use(express.urlencoded({ extended: false }));
+// app.use(express.json());
+
+// // Default response for any other request (Not Found)
+// app.use((req, res) => {
+//   res.status(404).end();
+// });
+
+
+
+
+  
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
