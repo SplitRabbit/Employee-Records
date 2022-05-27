@@ -1,13 +1,7 @@
 const inquirer = require('inquirer');
 const cTable = require('console.table');
-
-//require server packages
-const express = require('express');
 const mysql = require('mysql2');
-const { exit } = require('process');
 
-const PORT = process.env.PORT || 3001;
-const app = express();
 
 // Connect to database
 const db = mysql.createConnection(
@@ -22,30 +16,98 @@ const db = mysql.createConnection(
     console.log('Connected to the company database.')
   );
 
-//list of manager questions for inquirer
-const questions = [
-    {
-        type: "list",
-        name: "action",
-        message: "What would you like to do?",
-        choices: [
-            "View All Departments",
-            "View All Roles",
-            "View All Employees",
-            "Add a Department",
-            "Add a Role",
-            "Add an Employee",
-            "Update an Employee Role"
-        ]
-    },
-    //conditional questions depending on role
-    {
-        type: "input",
-        name: "newdepartment",
-        message: "What is the department name?",
-        when: (answers) => answers.action === "Add a Department"
-    },
-    {
+  //main running function
+function main() {
+    promptUser();
+}
+
+//promptuser function
+function promptUser() {
+    inquirer.prompt([
+        {
+            type: "list",
+            name: "action",
+            message: "What would you like to do?",
+            choices: [
+                "View All Departments",
+                "View All Roles",
+                "View All Employees",
+                "Add a Department",
+                "Add a Role",
+                "Add an Employee",
+                "Update an Employee Role"
+            ]
+        }]).then((answers) => {
+        if (answers.action === "View All Departments") {
+            viewdepartments();
+        } else if (answers.action === "View All Roles") {
+            viewroles();
+        } else if (answers.action === "View All Employees") {
+            viewemployees();
+        } else if (answers.action === "Add a Department") {
+            adddepartment();
+        } else if (answers.action === "Add a Role") {
+            addrole();
+        } else if (answers.action === "Add an Employee") {
+            addemployee();
+        } else if (answers.action ===  "Update an Employee Role") {
+            updateemployee();
+        } else {
+            console.log("Not a Valid Action")
+        };
+    });
+};
+function viewdepartments() {
+    db.query(`SELECT * FROM department`, (error, rows) => {
+        if (error){
+            return console.error(error.message);
+        }
+        console.table(rows);
+        dosomethingelse();
+      });
+};
+
+function viewroles() {
+    db.query(`SELECT * FROM role`, (error, rows) => {
+        if (error){
+            return console.error(error.message);
+        }
+        console.table(rows);
+        dosomethingelse();
+    });
+};
+
+function viewemployees() {
+db.query(`SELECT * FROM employees`, (error, rows) => {
+    if (error){
+        return console.error(error.message);
+    }
+    console.table(rows);
+    dosomethingelse();
+  });
+};
+
+function adddepartment() {
+    return inquirer.prompt ([{
+            type: "input",
+            name: "newdepartment",
+            message: "What is the department name?",
+            when: (answers) => answers.action === "Add a Department"
+    }]).then((answers) => {
+        db.query(`INSERT INTO department (name) 
+        VALUES (${answers.newdepartment});`
+        , (error, rows) => {
+            if (error){
+                return console.error(error.message);
+            }
+        console.log('Department Added Successfully!');
+        dosomethingelse();
+    });
+    })
+};
+
+function addrole() {
+    return inquirer.prompt ([{
         type: "input",
         name: "newrolename",
         message: "What is the name of this role?",
@@ -62,8 +124,22 @@ const questions = [
         name: "newroledeparmentid",
         message: "What is the department for this role?",
         when: (answers) => answers.action ===  "Add a Role"
-    },
-    {
+    }]).then((answers) => {
+        db.query(`INSERT INTO role (title,salary,department_id)
+        VALUES (${answers.newrolename},${answers.newrolesalary},
+            (SELECT id FROM department WHERE name = ${answers.newroledeparment});`
+        , (error, rows) => {
+            if (error){
+                return console.error(error.message);
+            }
+        console.log('Role added successfully!');
+        dosomethingelse();
+        })
+    });
+    };
+
+function addemployee() {
+    return inquirer.prompt ([{
         type: "input",
         name: "newemployeefirstname",
         message: "What is their first name?",
@@ -86,64 +162,37 @@ const questions = [
         name: "newemployeemanager",
         message: "Who is their manager?",
         when: (answers) => answers.action === "Add an Employee"
-    },
-    {
+    }]).then((answers) => {
+        db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id)
+        VALUES (${answers.newemployeefirstname},${answers.newemployeelastname},
+            (SELECT MAX(id) FROM role WHERE name = ${answers.newemployeerole}),
+            (SELECT MAX(id) FROM employees WHERE name = ${answers.newemployeemanager});`
+        , (error, rows) => {
+            if (error){
+                return console.error(error.message);
+            }
+    console.log('Employee added successfully!');
+    dosomethingelse();
+        })
+    });
+};
+
+function updateemployee() {
+    return inquirer.prompt ([{
         type: "input",
         name: "updateemployeerole",
         message: "What is their new role?",
         when: (answers) => answers.action === "Update an Employee Role"
-    },
-];
-
-//promptuser function
-function promptUser() {
-    console.log("Enter Employee Information Here.");
-    inquirer.prompt(questions).then((answers) => {
-        console.log(answers)
-        if (answers.action === "View All Departments") {
-            db.query(`SELECT * FROM department`, (err, rows) => {
-                console.table(rows);
-              });
-        } else if (answers.action === "View All Roles") {
-            db.query(`SELECT * FROM role`, (err, rows) => {
-                console.table(rows);
-              });
-        } else if (answers.action === "View All Employees") {
-            db.query(`SELECT * FROM employees`, (err, rows) => {
-                console.table(rows);
-              });
-        } else if (answers.action === "Add a Department") {
-            db.query(`INSERT INTO department (name) 
-                        VALUES (${answers.newdepartment});`
-                        , (err, rows) => {
-                console.log(rows);
-              });
-        } else if (answers.action === "Add a Role") {
-            db.query(`INSERT INTO role (title,salary,department_id)
-                        VALUES (${answers.newrolename},${answers.newrolesalary},
-                            (SELECT id FROM department WHERE name = ${answers.newroledeparment});`
-                        , (err, rows) => {
-                console.log('Role added successfully!')
-              });
-        } else if (answers.action === "Add an Employee") {
-            db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id)
-                        VALUES (${answers.newemployeefirstname},${answers.newemployeelastname},
-                            (SELECT MAX(id) FROM role WHERE name = ${answers.newemployeerole}),
-                            (SELECT MAX(id) FROM employees WHERE name = ${answers.newemployeemanager});`
-                        , (err, rows) => {
-                console.log('Employee updated successfully!')
-              });
-        } else if (answers.action ===  "Update an Employee Role") {
-            db.query(`UPDATE employees 
-                        SET role = (SELECT MAX(id) FROM role WHERE id = ${answers.updateemployeerole})`
-                        , (err, rows) => {
-                console.log('Employee updated successfully!')
-              });
-        } else {
-            console.log("Not a Valid Action")
-        };
-    //recursive function to decide whether or not to loop through again
-        dosomethingelse();
+    }]).then((answers) => {
+        db.query(`UPDATE employees 
+        SET role = (SELECT MAX(id) FROM role WHERE id = ${answers.updateemployeerole})`
+        , (error, rows) => {
+            if (error){
+                return console.error(error.message);
+            }
+    console.log('Employee updated successfully!');
+    dosomethingelse();
+        })
     });
 };
 
@@ -156,29 +205,9 @@ function dosomethingelse() {
         if (answers.dosomethingelse) {
             promptUser();
         } else {
-            exit();
+            process.exit();
         }
-        promptUser()
     });
-    //recursive question to reloop through questions 
 };
 
-promptUser();
-
-
-// // Express middleware
-// app.use(express.urlencoded({ extended: false }));
-// app.use(express.json());
-
-// // Default response for any other request (Not Found)
-// app.use((req, res) => {
-//   res.status(404).end();
-// });
-
-
-
-
-  
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
+main();
