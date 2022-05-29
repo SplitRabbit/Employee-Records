@@ -88,17 +88,17 @@ db.query(`SELECT * FROM employees`, (error, rows) => {
 };
 
 function adddepartment() {
-    return inquirer.prompt ([{
+    inquirer.prompt ([{
             type: "input",
             name: "newdepartment",
-            message: "What is the department name?",
-            when: (answers) => answers.action === "Add a Department"
+            message: "What is the department name?"
     }]).then((answers) => {
         db.query(`INSERT INTO department (name) 
-        VALUES (${answers.newdepartment});`
-        , (error, rows) => {
+        VALUES ('${answers.newdepartment}');`
+        , (error) => {
             if (error){
                 return console.error(error.message);
+                adddepartment();
             }
         console.log('Department Added Successfully!');
         dosomethingelse();
@@ -110,27 +110,25 @@ function addrole() {
     return inquirer.prompt ([{
         type: "input",
         name: "newrolename",
-        message: "What is the name of this role?",
-        when: (answers) => answers.action ===  "Add a Role"
+        message: "What is the name of this role?"
     },
     {
         type: "input",
         name: "newrolesalary",
-        message: "What is the salary for this role?",
-        when: (answers) => answers.action ===  "Add a Role"
+        message: "What is the salary for this role?"
     },
     {
         type: "input",
         name: "newroledeparmentid",
-        message: "What is the department for this role?",
-        when: (answers) => answers.action ===  "Add a Role"
+        message: "What is the department for this role?"
     }]).then((answers) => {
         db.query(`INSERT INTO role (title,salary,department_id)
-        VALUES (${answers.newrolename},${answers.newrolesalary},
-            (SELECT id FROM department WHERE name = ${answers.newroledeparment});`
-        , (error, rows) => {
+        VALUES ('${answers.newrolename}','${answers.newrolesalary}',
+            (SELECT MAX(id) FROM department WHERE name = '${answers.newroledeparmentid}'));`
+        , (error) => {
             if (error){
                 return console.error(error.message);
+                addrole();
             }
         console.log('Role added successfully!');
         dosomethingelse();
@@ -143,33 +141,30 @@ function addemployee() {
         type: "input",
         name: "newemployeefirstname",
         message: "What is their first name?",
-        when: (answers) => answers.action === "Add an Employee"
     },
     {
         type: "input",
         name: "newemployeelastname",
         message: "What is their last name?",
-        when: (answers) => answers.action === "Add an Employee"
     },
     {
         type: "input",
         name: "newemployeerole",
         message: "What is their role?",
-        when: (answers) => answers.action === "Add an Employee"
     },
     {
         type: "input",
         name: "newemployeemanager",
-        message: "Who is their manager?",
-        when: (answers) => answers.action === "Add an Employee"
+        message: "Who is their manager?"
     }]).then((answers) => {
         db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id)
-        VALUES (${answers.newemployeefirstname},${answers.newemployeelastname},
-            (SELECT MAX(id) FROM role WHERE name = ${answers.newemployeerole}),
-            (SELECT MAX(id) FROM employees WHERE name = ${answers.newemployeemanager});`
-        , (error, rows) => {
+        VALUES ('${answers.newemployeefirstname}','${answers.newemployeelastname}',
+            (SELECT MAX(id) FROM role WHERE title = '${answers.newemployeerole}'),
+            (SELECT MAX(id) FROM employees WHERE first_name = '${answers.newemployeemanager}'));`
+        , (error) => {
             if (error){
                 return console.error(error.message);
+                addemployee();
             }
     console.log('Employee added successfully!');
     dosomethingelse();
@@ -180,15 +175,21 @@ function addemployee() {
 function updateemployee() {
     return inquirer.prompt ([{
         type: "input",
+        name: "employeeid",
+        message: "What is the employees id?"
+    },
+    {
+        type: "input",
         name: "updateemployeerole",
-        message: "What is their new role?",
-        when: (answers) => answers.action === "Update an Employee Role"
+        message: "What is their new role?"
     }]).then((answers) => {
         db.query(`UPDATE employees 
-        SET role = (SELECT MAX(id) FROM role WHERE id = ${answers.updateemployeerole})`
+        SET role_id = (SELECT max(id) FROM role WHERE title = '${answers.updateemployeerole}')
+            WHERE employees.id = '${answers.employeeid}'`
         , (error, rows) => {
             if (error){
                 return console.error(error.message);
+                updateemployee();
             }
     console.log('Employee updated successfully!');
     dosomethingelse();
